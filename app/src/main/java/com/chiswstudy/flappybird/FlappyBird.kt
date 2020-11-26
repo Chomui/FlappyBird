@@ -44,14 +44,24 @@ class FlappyBird @JvmOverloads constructor(
         isAntiAlias = true
     }
     private val paintBird = Paint()
+    private val paintBirdCopy = Paint().apply {
+        isAntiAlias = true
+        color = Color.CYAN
+    }
+    private val paintTree = Paint().apply {
+        isAntiAlias = true
+        color = Color.BLUE
+    }
 
     private var left1: Float = 0F
     private var left2: Float = 0F
     private var left3: Float = 0F
     private val treeSpace: Float = 0.8F
     private var birdTop: Float = 0F
-    private var birdUpAnimator: ValueAnimator? = null
+    private var birdLeft: Float = 0F
+    private var hit = false
 
+    private var birdUpAnimator: ValueAnimator? = null
     private lateinit var birdFallAnimator: ValueAnimator
 
     init {
@@ -68,7 +78,9 @@ class FlappyBird @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent?): Boolean = when (event?.action) {
         MotionEvent.ACTION_DOWN -> {
-            performClick()
+            if (!hit) {
+                performClick()
+            }
             true
         }
         else -> false
@@ -92,6 +104,7 @@ class FlappyBird @JvmOverloads constructor(
 
                 // Bird start position
                 birdTop = (viewHeight / 2) - (bird.height / 2)
+                birdLeft = (viewWidth / 2) - (bird.width / 2)
 
                 moveTrees()
 
@@ -103,22 +116,47 @@ class FlappyBird @JvmOverloads constructor(
     }
 
     private fun drawTrees(canvas: Canvas?) {
-        canvas?.drawBitmap(tree, left1, viewHeight - tree.height, paint)
+        canvas?.drawRect(
+            RectF(left1, viewHeight - tree.height, left1 + tree.width, viewHeight),
+            paintTree
+        )
+        canvas?.drawRect(
+            RectF(left2, viewHeight - tree.height, left2 + tree.width, viewHeight),
+            paintTree
+        )
+        canvas?.drawRect(
+            RectF(left3, viewHeight - tree.height, left3 + tree.width, viewHeight),
+            paintTree
+        )
+
+        canvas?.drawRect(RectF(left1, 0F, left1 + tree.width, 0F + tree.height), paintTree)
+        canvas?.drawRect(RectF(left2, 0F, left2 + tree.width, 0F + tree.height), paintTree)
+        canvas?.drawRect(RectF(left3, 0F, left3 + tree.width, 0F + tree.height), paintTree)
+
+        /*canvas?.drawBitmap(tree, left1, viewHeight - tree.height, paint)
         canvas?.drawBitmap(reversedTree, left1, 0F, paint)
 
         canvas?.drawBitmap(tree, left2, viewHeight - tree.height, paint)
         canvas?.drawBitmap(reversedTree, left2, 0F, paint)
 
         canvas?.drawBitmap(tree, left3, viewHeight - tree.height, paint)
-        canvas?.drawBitmap(reversedTree, left3, 0F, paint)
+        canvas?.drawBitmap(reversedTree, left3, 0F, paint)*/
     }
 
     private fun drawBird(canvas: Canvas?) {
-        canvas?.drawBitmap(
+        /*canvas?.drawBitmap(
             bird,
             (viewWidth / 2) - (bird.width / 2),
             birdTop,
             paintBird
+        )*/
+        canvas?.drawRect(
+            Rect(
+                ((viewWidth / 2) - (bird.width / 2)).toInt(),
+                birdTop.toInt(),
+                ((viewWidth / 2) - (bird.width / 2) + bird.width).toInt(),
+                (birdTop + bird.height).toInt()
+            ), paintBirdCopy
         )
     }
 
@@ -131,7 +169,17 @@ class FlappyBird @JvmOverloads constructor(
             addUpdateListener { it ->
                 val value = it.animatedValue as Float
 
-                changeTreesCoordinateX(value)
+                if (isHit()) {
+                    birdUpAnimator?.cancel()
+                    birdFallAnimator.cancel()
+
+                    birdFallAnimator = createBirdFallAnimator()
+                    birdFallAnimator.start()
+
+                    cancel()
+                } else {
+                    changeTreesCoordinateX(value)
+                }
 
                 invalidate()
             }
@@ -210,5 +258,33 @@ class FlappyBird @JvmOverloads constructor(
             this.height / 2F
         )
         return Bitmap.createBitmap(this, 0, 0, this.width, this.height, matrix, true)
+    }
+
+    private fun isHit(): Boolean {
+        if (((isTreeXInRange(left1, left1 + tree.width))
+                    && (isTreeYInRange(viewHeight - tree.height, viewHeight)))
+            || ((isTreeXInRange(left2, left2 + tree.width))
+                    && (isTreeYInRange(viewHeight - tree.height, viewHeight)))
+            || ((isTreeXInRange(left3, left3 + tree.width))
+                    && (isTreeYInRange(viewHeight - tree.height, viewHeight)))
+            || ((isTreeXInRange(left1, left1 + tree.width))
+                    && (isTreeYInRange(0F, 0F + tree.height)))
+            || ((isTreeXInRange(left2, left2 + tree.width))
+                    && (isTreeYInRange(0F, 0F + tree.height)))
+            || ((isTreeXInRange(left3, left3 + tree.width))
+                    && (isTreeYInRange(0F, 0F + tree.height)))
+        ) {
+            hit = true
+            return true
+        }
+        return false
+    }
+
+    private fun isTreeXInRange(leftX: Float, rightX: Float): Boolean {
+        return (birdLeft in leftX..rightX) || (birdLeft + bird.width in leftX..rightX)
+    }
+
+    private fun isTreeYInRange(topY: Float, bottomY: Float): Boolean {
+        return (birdTop in topY..bottomY) || ((birdTop + bird.height) in topY..bottomY)
     }
 }
