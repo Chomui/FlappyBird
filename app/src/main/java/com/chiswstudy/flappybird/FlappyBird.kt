@@ -7,6 +7,7 @@ import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.util.Log
+import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver
@@ -17,28 +18,34 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import kotlin.random.Random
 
-
 class FlappyBird @JvmOverloads constructor(
         context: Context,
         attrs: AttributeSet? = null,
         defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private val tree: Bitmap =
-            BitmapFactory.decodeResource(context.resources, R.drawable.tree).let {
-                Bitmap.createScaledBitmap(
-                        it,
-                        it.width / 2,
-                        it.height / 2,
-                        false
-                )
-            }
+    private val birdWidth = 100F.toPixels().toInt()
+    private val birdHeight = 100F.toPixels().toInt()
+    private val treeWidth = 100F.toPixels().toInt()
+    private var treeHeight = 0
+    private val gap = 125F.toPixels().toDouble()
 
-    private val reversedTree: Bitmap = tree.createFlippedBitmap(xFlip = false, yFlip = true)
+    private val tree: Bitmap by lazy {
+        BitmapFactory.decodeResource(context.resources, R.drawable.tree).let {
+            Bitmap.createScaledBitmap(
+                    it,
+                    treeWidth,
+                    treeHeight,
+                    false
+            )
+        }
+    }
+
+    private val reversedTree: Bitmap by lazy { tree.createFlippedBitmap(xFlip = false, yFlip = true) }
     private val bird: Bitmap = Bitmap.createScaledBitmap(
             BitmapFactory.decodeResource(context.resources, R.drawable.bird),
-            100,
-            100,
+            birdWidth,
+            birdHeight,
             false
     )
     private val coin = Bitmap.createScaledBitmap(
@@ -146,11 +153,13 @@ class FlappyBird @JvmOverloads constructor(
                 birdTop = (viewHeight / 2) - (bird.height / 2)
                 birdLeft = (viewWidth / 2) - (bird.width / 2)
 
-                coinTop1 = Random.nextFloat() * viewHeight - coin.height
-                coinTop2 = Random.nextFloat() * viewHeight - coin.height
+                treeHeight = height / 2
 
-                gapLeft1 = Random.nextDouble(tree.width.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
-                gapLeft2 = Random.nextDouble(tree.width.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
+                coinTop1 = Random.nextDouble(treeHeight - birdHeight * 1.25, viewHeight - treeHeight + birdHeight * 1.25).toFloat()
+                coinTop2 = Random.nextDouble(treeHeight - birdHeight * 1.25, viewHeight - treeHeight + birdHeight * 1.25).toFloat()
+
+                gapLeft1 = Random.nextDouble(treeWidth.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
+                gapLeft2 = Random.nextDouble(treeWidth.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
 
                 passedTree1 = true
 
@@ -165,29 +174,29 @@ class FlappyBird @JvmOverloads constructor(
 
     private fun drawTrees(canvas: Canvas?) {
         canvas?.drawRect(
-                RectF(left1, viewHeight - tree.height + gap1, left1 + tree.width, viewHeight),
+                RectF(left1, viewHeight - treeHeight + birdHeight * 1.25F + gap1, left1 + treeWidth, viewHeight),
                 paintTree
         )
         canvas?.drawRect(
-                RectF(left2, viewHeight - tree.height + gap2, left2 + tree.width, viewHeight),
+                RectF(left2, viewHeight - treeHeight + birdHeight * 1.25F + gap2, left2 + treeWidth, viewHeight),
                 paintTree
         )
         canvas?.drawRect(
-                RectF(left3, viewHeight - tree.height + gap3, left3 + tree.width, viewHeight),
+                RectF(left3, viewHeight - treeHeight + birdHeight * 1.25F + gap3, left3 + treeWidth, viewHeight),
                 paintTree
         )
 
-        canvas?.drawRect(RectF(left1, 0F, left1 + tree.width, 0F + tree.height + gap1), paintTree)
-        canvas?.drawRect(RectF(left2, 0F, left2 + tree.width, 0F + tree.height + gap2), paintTree)
-        canvas?.drawRect(RectF(left3, 0F, left3 + tree.width, 0F + tree.height + gap3), paintTree)
+        canvas?.drawRect(RectF(left1, 0F, left1 + treeWidth, treeHeight - birdHeight * 1.25F + gap1), paintTree)
+        canvas?.drawRect(RectF(left2, 0F, left2 + treeWidth, treeHeight - birdHeight * 1.25F + gap2), paintTree)
+        canvas?.drawRect(RectF(left3, 0F, left3 + treeWidth, treeHeight - birdHeight * 1.25F + gap3), paintTree)
 
-        /*canvas?.drawBitmap(tree, left1, viewHeight - tree.height, paint)
+        /*canvas?.drawBitmap(tree, left1, viewHeight - treeHeight, paint)
         canvas?.drawBitmap(reversedTree, left1, 0F, paint)
 
-        canvas?.drawBitmap(tree, left2, viewHeight - tree.height, paint)
+        canvas?.drawBitmap(tree, left2, viewHeight - treeHeight, paint)
         canvas?.drawBitmap(reversedTree, left2, 0F, paint)
 
-        canvas?.drawBitmap(tree, left3, viewHeight - tree.height, paint)
+        canvas?.drawBitmap(tree, left3, viewHeight - treeHeight, paint)
         canvas?.drawBitmap(reversedTree, left3, 0F, paint)*/
 
         if (!hitCoin1) {
@@ -258,7 +267,7 @@ class FlappyBird @JvmOverloads constructor(
             passedTree1 = false
 
             if (!gapChanged3) {
-                gap3 = Random.nextDouble(-200.0, 200.0).toFloat()
+                gap3 = Random.nextDouble(-gap, gap).toFloat()
                 gapChanged3 = true
             }
 
@@ -272,7 +281,7 @@ class FlappyBird @JvmOverloads constructor(
             hitCoin3 = false
 
             if (!passedTree2) {
-                passedTree2 = birdLeft > left2 + tree.width
+                passedTree2 = birdLeft > left2 + treeWidth
                 if (passedTree2) passedTrees++
             }
             Log.d("0", "changeTreesCoordinateX: $left1 $left2 $left3")
@@ -280,10 +289,10 @@ class FlappyBird @JvmOverloads constructor(
             passedTree2 = false
 
             if (!gapChanged1) {
-                gap1 = Random.nextDouble(-200.0, 200.0).toFloat()
+                gap1 = Random.nextDouble(-gap, gap).toFloat()
 
-                coinTop3 = Random.nextFloat() * viewHeight - coin.height
-                gapLeft3 = Random.nextDouble(tree.width.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
+                coinTop3 = Random.nextDouble(treeHeight - birdHeight * 1.25 - gap3 / 2, viewHeight - treeHeight + birdHeight * 1.25 - gap3 / 2).toFloat()
+                gapLeft3 = Random.nextDouble(treeWidth.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
 
                 gapChanged1 = true
             }
@@ -298,7 +307,7 @@ class FlappyBird @JvmOverloads constructor(
             hitCoin1 = false
 
             if (!passedTree3) {
-                passedTree3 = birdLeft > left3 + tree.width
+                passedTree3 = birdLeft > left3 + treeWidth
                 if (passedTree3) passedTrees++
             }
             Log.d("1", "changeTreesCoordinateX: $left1 $left2 $left3")
@@ -306,12 +315,12 @@ class FlappyBird @JvmOverloads constructor(
             passedTree3 = false
 
             if (!gapChanged2) {
-                gap2 = Random.nextDouble(-200.0, 200.0).toFloat()
+                gap2 = Random.nextDouble(-gap, gap).toFloat()
 
-                gapLeft1 = Random.nextDouble(tree.width.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
-                gapLeft2 = Random.nextDouble(tree.width.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
-                coinTop1 = Random.nextFloat() * viewHeight - coin.height
-                coinTop2 = Random.nextFloat() * viewHeight - coin.height
+                gapLeft1 = Random.nextDouble(treeWidth.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
+                gapLeft2 = Random.nextDouble(treeWidth.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
+                coinTop1 = Random.nextDouble(treeHeight - birdHeight * 1.25 - gap1 / 2, viewHeight - treeHeight + birdHeight * 1.25 - gap1 / 2).toFloat()
+                coinTop2 = Random.nextDouble(treeHeight - birdHeight * 1.25 - gap2 / 2, viewHeight - treeHeight + birdHeight * 1.25 - gap2 / 2).toFloat()
 
                 gapChanged2 = true
             }
@@ -326,7 +335,7 @@ class FlappyBird @JvmOverloads constructor(
             hitCoin2 = false
 
             if (!passedTree1) {
-                passedTree1 = birdLeft > left1 + tree.width
+                passedTree1 = birdLeft > left1 + treeWidth
                 if (passedTree1) passedTrees++
             }
             Log.d("2", "changeTreesCoordinateX: $left1 $left2 $left3")
@@ -394,18 +403,18 @@ class FlappyBird @JvmOverloads constructor(
     }
 
     private fun isHitObstacle(): Boolean {
-        if (((isObjectXInRange(left1, left1 + tree.width))
-                        && (isObjectYInRange(viewHeight - tree.height + gap1, viewHeight)))
-                || ((isObjectXInRange(left2, left2 + tree.width))
-                        && (isObjectYInRange(viewHeight - tree.height + gap2, viewHeight)))
-                || ((isObjectXInRange(left3, left3 + tree.width))
-                        && (isObjectYInRange(viewHeight - tree.height + gap3, viewHeight)))
-                || ((isObjectXInRange(left1, left1 + tree.width))
-                        && (isObjectYInRange(0F, 0F + tree.height + gap1)))
-                || ((isObjectXInRange(left2, left2 + tree.width))
-                        && (isObjectYInRange(0F, 0F + tree.height + gap2)))
-                || ((isObjectXInRange(left3, left3 + tree.width))
-                        && (isObjectYInRange(0F, 0F + tree.height + gap3)))) {
+        if (((isObjectXInRange(left1, left1 + treeWidth))
+                        && (isObjectYInRange(viewHeight - treeHeight + birdHeight * 1.25F + gap1, viewHeight)))
+                || ((isObjectXInRange(left2, left2 + treeWidth))
+                        && (isObjectYInRange(viewHeight - treeHeight + birdHeight * 1.25F + gap2, viewHeight)))
+                || ((isObjectXInRange(left3, left3 + treeWidth))
+                        && (isObjectYInRange(viewHeight - treeHeight + birdHeight * 1.25F + gap3, viewHeight)))
+                || ((isObjectXInRange(left1, left1 + treeWidth))
+                        && (isObjectYInRange(0F, treeHeight - birdHeight * 1.25F + gap1)))
+                || ((isObjectXInRange(left2, left2 + treeWidth))
+                        && (isObjectYInRange(0F, treeHeight - birdHeight * 1.25F + gap2)))
+                || ((isObjectXInRange(left3, left3 + treeWidth))
+                        && (isObjectYInRange(0F, treeHeight - birdHeight * 1.25F + gap3)))) {
             hit = true
             return true
         }
@@ -433,11 +442,11 @@ class FlappyBird @JvmOverloads constructor(
     }
 
     private fun isObjectXInRange(leftX: Float, rightX: Float): Boolean {
-        return (birdLeft in leftX..rightX) || (birdLeft + bird.width in leftX..rightX)
+        return (leftX in birdLeft..birdLeft + bird.width) || (rightX in birdLeft..birdLeft + bird.width)
     }
 
     private fun isObjectYInRange(topY: Float, bottomY: Float): Boolean {
-        return (birdTop in topY..bottomY) || ((birdTop + bird.height) in topY..bottomY)
+        return (topY in birdTop..birdTop + bird.height) || (bottomY in birdTop..birdTop + bird.height)
     }
 
     private fun getBitmap(context: Context, drawableId: Int): Bitmap {
@@ -451,5 +460,21 @@ class FlappyBird @JvmOverloads constructor(
         drawable.setBounds(0, 0, canvas.width, canvas.height)
         drawable.draw(canvas)
         return bitmap
+    }
+
+    private fun Float.toPixels(): Float {
+        return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                this,
+                resources.displayMetrics
+        )
+    }
+
+    private fun Double.toPixels(): Double {
+        return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                this.toFloat(),
+                resources.displayMetrics
+        ).toDouble()
     }
 }
