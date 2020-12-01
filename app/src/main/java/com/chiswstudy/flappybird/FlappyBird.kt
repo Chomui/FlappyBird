@@ -63,6 +63,12 @@ class FlappyBird @JvmOverloads constructor(
         isAntiAlias = true
         color = Color.BLUE
     }
+    private val paintText = Paint().apply {
+        isAntiAlias = true
+        color = Color.BLACK
+        style = Paint.Style.FILL
+        textSize = 100F
+    }
 
     private var left1: Float = 0F
     private var left2: Float = 0F
@@ -86,6 +92,14 @@ class FlappyBird @JvmOverloads constructor(
     private var birdTop: Float = 0F
     private var birdLeft: Float = 0F
     private var hit = false
+    private var hitCoin1 = false
+    private var hitCoin2 = false
+    private var hitCoin3 = false
+    private var coins = 0
+    private var passedTree1 = false
+    private var passedTree2 = false
+    private var passedTree3 = false
+    private var passedTrees = 0
 
     private var birdUpAnimator: ValueAnimator? = null
     private lateinit var birdFallAnimator: ValueAnimator
@@ -138,6 +152,8 @@ class FlappyBird @JvmOverloads constructor(
                 gapLeft1 = Random.nextDouble(tree.width.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
                 gapLeft2 = Random.nextDouble(tree.width.toDouble(), viewWidth * treeSpace.toDouble() - coin.width).toFloat()
 
+                passedTree1 = true
+
                 moveTrees()
 
                 // Create animator for bird to fall until user clicks
@@ -174,11 +190,21 @@ class FlappyBird @JvmOverloads constructor(
         canvas?.drawBitmap(tree, left3, viewHeight - tree.height, paint)
         canvas?.drawBitmap(reversedTree, left3, 0F, paint)*/
 
-        canvas?.drawBitmap(coin, coinLeft1, coinTop1, paint)
-        canvas?.drawBitmap(coin, coinLeft2, coinTop2, paint)
-        if (coinLeft3 != Float.NEGATIVE_INFINITY) {
+        if (!hitCoin1) {
+            canvas?.drawBitmap(coin, coinLeft1, coinTop1, paint)
+        }
+        if (!hitCoin2) {
+            canvas?.drawBitmap(coin, coinLeft2, coinTop2, paint)
+        }
+        if (coinLeft3 != Float.NEGATIVE_INFINITY && !hitCoin3) {
             canvas?.drawBitmap(coin, coinLeft3, coinTop3, paint)
         }
+
+        canvas?.drawBitmap(coin, 50F, 50F, paint)
+        canvas?.drawText(coins.toString(), 50F + coin.width + 50F, coin.height / 2F + 90F, paintText)
+
+        canvas?.drawRect(RectF(50F, 50F + coin.height + 50F, 50F + coin.width, 50F + coin.height + 50F + coin.height), paintTree)
+        canvas?.drawText(passedTrees.toString(), 50F + coin.width + 50F, 50F + coin.height + 50F + (50F + coin.height + 50F + coin.height) - (50F + coin.height + 50F), paintText)
     }
 
     private fun drawBird(canvas: Canvas?) {
@@ -207,10 +233,11 @@ class FlappyBird @JvmOverloads constructor(
             addUpdateListener { it ->
                 val value = it.animatedValue as Float
 
-                if (isHit()) {
+                if (isHitObstacle()) {
                     birdUpAnimator?.cancel()
                     cancel()
                 } else {
+                    isHitCoins()
                     changeTreesCoordinateX(value)
                     invalidate()
                 }
@@ -228,6 +255,8 @@ class FlappyBird @JvmOverloads constructor(
 
     private fun changeTreesCoordinateX(value: Float) {
         if (value <= 0 && value > -treeSpace) {
+            passedTree1 = false
+
             if (!gapChanged3) {
                 gap3 = Random.nextDouble(-200.0, 200.0).toFloat()
                 gapChanged3 = true
@@ -239,8 +268,17 @@ class FlappyBird @JvmOverloads constructor(
 
             coinLeft1 = left1 + gapLeft1
             coinLeft2 = left2 + gapLeft2
+
+            hitCoin3 = false
+
+            if (!passedTree2) {
+                passedTree2 = birdLeft > left2 + tree.width
+                if (passedTree2) passedTrees++
+            }
             Log.d("0", "changeTreesCoordinateX: $left1 $left2 $left3")
         } else if (value <= -treeSpace && value > -2 * treeSpace) {
+            passedTree2 = false
+
             if (!gapChanged1) {
                 gap1 = Random.nextDouble(-200.0, 200.0).toFloat()
 
@@ -256,8 +294,17 @@ class FlappyBird @JvmOverloads constructor(
 
             coinLeft2 = left2 + gapLeft2
             coinLeft3 = left3 + gapLeft3
+
+            hitCoin1 = false
+
+            if (!passedTree3) {
+                passedTree3 = birdLeft > left3 + tree.width
+                if (passedTree3) passedTrees++
+            }
             Log.d("1", "changeTreesCoordinateX: $left1 $left2 $left3")
         } else if (value <= -2 * treeSpace && value > -3 * treeSpace) {
+            passedTree3 = false
+
             if (!gapChanged2) {
                 gap2 = Random.nextDouble(-200.0, 200.0).toFloat()
 
@@ -275,6 +322,13 @@ class FlappyBird @JvmOverloads constructor(
 
             coinLeft3 = left3 + gapLeft3
             coinLeft1 = left1 + gapLeft1
+
+            hitCoin2 = false
+
+            if (!passedTree1) {
+                passedTree1 = birdLeft > left1 + tree.width
+                if (passedTree1) passedTrees++
+            }
             Log.d("2", "changeTreesCoordinateX: $left1 $left2 $left3")
         }
     }
@@ -339,31 +393,50 @@ class FlappyBird @JvmOverloads constructor(
         return Bitmap.createBitmap(this, 0, 0, this.width, this.height, matrix, true)
     }
 
-    private fun isHit(): Boolean {
-        if (((isTreeXInRange(left1, left1 + tree.width))
-                        && (isTreeYInRange(viewHeight - tree.height + gap1, viewHeight)))
-                || ((isTreeXInRange(left2, left2 + tree.width))
-                        && (isTreeYInRange(viewHeight - tree.height + gap2, viewHeight)))
-                || ((isTreeXInRange(left3, left3 + tree.width))
-                        && (isTreeYInRange(viewHeight - tree.height + gap3, viewHeight)))
-                || ((isTreeXInRange(left1, left1 + tree.width))
-                        && (isTreeYInRange(0F, 0F + tree.height + gap1)))
-                || ((isTreeXInRange(left2, left2 + tree.width))
-                        && (isTreeYInRange(0F, 0F + tree.height + gap2)))
-                || ((isTreeXInRange(left3, left3 + tree.width))
-                        && (isTreeYInRange(0F, 0F + tree.height + gap3)))
-        ) {
+    private fun isHitObstacle(): Boolean {
+        if (((isObjectXInRange(left1, left1 + tree.width))
+                        && (isObjectYInRange(viewHeight - tree.height + gap1, viewHeight)))
+                || ((isObjectXInRange(left2, left2 + tree.width))
+                        && (isObjectYInRange(viewHeight - tree.height + gap2, viewHeight)))
+                || ((isObjectXInRange(left3, left3 + tree.width))
+                        && (isObjectYInRange(viewHeight - tree.height + gap3, viewHeight)))
+                || ((isObjectXInRange(left1, left1 + tree.width))
+                        && (isObjectYInRange(0F, 0F + tree.height + gap1)))
+                || ((isObjectXInRange(left2, left2 + tree.width))
+                        && (isObjectYInRange(0F, 0F + tree.height + gap2)))
+                || ((isObjectXInRange(left3, left3 + tree.width))
+                        && (isObjectYInRange(0F, 0F + tree.height + gap3)))) {
             hit = true
             return true
         }
         return false
     }
 
-    private fun isTreeXInRange(leftX: Float, rightX: Float): Boolean {
+    private fun isHitCoin(left: Float, top: Float, right: Float, bottom: Float): Boolean {
+        return ((isObjectXInRange(left, right))
+                && (isObjectYInRange(top, bottom)))
+    }
+
+    private fun isHitCoins() {
+        if (!hitCoin1) {
+            hitCoin1 = isHitCoin(coinLeft1, coinTop1, coinLeft1 + coin.width, coinTop1 + coin.height)
+            if (hitCoin1) coins++
+        }
+        if (!hitCoin2) {
+            hitCoin2 = isHitCoin(coinLeft2, coinTop2, coinLeft2 + coin.width, coinTop2 + coin.height)
+            if (hitCoin2) coins++
+        }
+        if (!hitCoin3) {
+            hitCoin3 = isHitCoin(coinLeft3, coinTop3, coinLeft3 + coin.width, coinTop3 + coin.height)
+            if (hitCoin3) coins++
+        }
+    }
+
+    private fun isObjectXInRange(leftX: Float, rightX: Float): Boolean {
         return (birdLeft in leftX..rightX) || (birdLeft + bird.width in leftX..rightX)
     }
 
-    private fun isTreeYInRange(topY: Float, bottomY: Float): Boolean {
+    private fun isObjectYInRange(topY: Float, bottomY: Float): Boolean {
         return (birdTop in topY..bottomY) || ((birdTop + bird.height) in topY..bottomY)
     }
 
