@@ -31,7 +31,7 @@ class FlappyBird @JvmOverloads constructor(
     private val gap = 125F.toPixels().toDouble()
 
     private val tree: Bitmap by lazy {
-        BitmapFactory.decodeResource(context.resources, R.drawable.tree).let {
+        BitmapFactory.decodeResource(context.resources, R.drawable.natali).let {
             Bitmap.createScaledBitmap(
                     it,
                     treeWidth,
@@ -43,15 +43,15 @@ class FlappyBird @JvmOverloads constructor(
 
     private val reversedTree: Bitmap by lazy { tree.createFlippedBitmap(xFlip = false, yFlip = true) }
     private val bird: Bitmap = Bitmap.createScaledBitmap(
-            BitmapFactory.decodeResource(context.resources, R.drawable.bird),
+            BitmapFactory.decodeResource(context.resources, R.drawable.bird_a),
             birdWidth,
             birdHeight,
             false
     )
     private val coin = Bitmap.createScaledBitmap(
-            getBitmap(context, R.drawable.ic_coin),
-            75,
-            75,
+            getBitmap(context, R.drawable.cigarette),
+            250,
+            125,
             false
     )
 
@@ -153,7 +153,7 @@ class FlappyBird @JvmOverloads constructor(
                 birdTop = (viewHeight / 2) - (bird.height / 2)
                 birdLeft = (viewWidth / 2) - (bird.width / 2)
 
-                treeHeight = height / 2
+                treeHeight = 180F.toPixels().toInt()
 
                 coinTop1 = Random.nextDouble(treeHeight - birdHeight * 1.25, viewHeight - treeHeight + birdHeight * 1.25).toFloat()
                 coinTop2 = Random.nextDouble(treeHeight - birdHeight * 1.25, viewHeight - treeHeight + birdHeight * 1.25).toFloat()
@@ -173,7 +173,7 @@ class FlappyBird @JvmOverloads constructor(
     }
 
     private fun drawTrees(canvas: Canvas?) {
-        canvas?.drawRect(
+        /*canvas?.drawRect(
                 RectF(left1, viewHeight - treeHeight + birdHeight * 1.25F + gap1, left1 + treeWidth, viewHeight),
                 paintTree
         )
@@ -188,16 +188,16 @@ class FlappyBird @JvmOverloads constructor(
 
         canvas?.drawRect(RectF(left1, 0F, left1 + treeWidth, treeHeight - birdHeight * 1.25F + gap1), paintTree)
         canvas?.drawRect(RectF(left2, 0F, left2 + treeWidth, treeHeight - birdHeight * 1.25F + gap2), paintTree)
-        canvas?.drawRect(RectF(left3, 0F, left3 + treeWidth, treeHeight - birdHeight * 1.25F + gap3), paintTree)
+        canvas?.drawRect(RectF(left3, 0F, left3 + treeWidth, treeHeight - birdHeight * 1.25F + gap3), paintTree)*/
 
-        /*canvas?.drawBitmap(tree, left1, viewHeight - treeHeight, paint)
-        canvas?.drawBitmap(reversedTree, left1, 0F, paint)
+        canvas?.drawBitmap(tree, left1, viewHeight - treeHeight + gap1, paint)
+        canvas?.drawBitmap(tree, left1, 0F + gap1, paint)
 
-        canvas?.drawBitmap(tree, left2, viewHeight - treeHeight, paint)
-        canvas?.drawBitmap(reversedTree, left2, 0F, paint)
+        canvas?.drawBitmap(tree, left2, viewHeight - treeHeight + gap2, paint)
+        canvas?.drawBitmap(tree, left2, 0F + gap2, paint)
 
-        canvas?.drawBitmap(tree, left3, viewHeight - treeHeight, paint)
-        canvas?.drawBitmap(reversedTree, left3, 0F, paint)*/
+        canvas?.drawBitmap(tree, left3, viewHeight - treeHeight + gap3, paint)
+        canvas?.drawBitmap(tree, left3, 0F + gap3, paint)
 
         if (!hitCoin1) {
             canvas?.drawBitmap(coin, coinLeft1, coinTop1, paint)
@@ -217,20 +217,20 @@ class FlappyBird @JvmOverloads constructor(
     }
 
     private fun drawBird(canvas: Canvas?) {
-        /*canvas?.drawBitmap(
+        canvas?.drawBitmap(
             bird,
-            (viewWidth / 2) - (bird.width / 2),
+            birdLeft,
             birdTop,
             paintBird
-        )*/
-        canvas?.drawRect(
+        )
+        /*canvas?.drawRect(
                 Rect(
                         birdLeft.toInt(),
                         birdTop.toInt(),
                         (birdLeft + bird.width).toInt(),
                         (birdTop + bird.height).toInt()
                 ), paintBirdCopy
-        )
+        )*/
     }
 
     private fun moveTrees() {
